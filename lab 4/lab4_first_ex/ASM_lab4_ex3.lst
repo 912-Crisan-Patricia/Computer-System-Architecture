@@ -1,0 +1,58 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9 00000000 CCCC                        a dw 1100110011001100b
+    10 00000002 AAAA                        b dw 1010101010101010b
+    11 00000004 0000000000000000            c dq 0
+    12                                  segment code use32 class=code
+    13                                  start:  ;Given the words A and B, compute the doubleword C as follows:
+    14                                          ;the bits 0-2 of C are the same as the bits 12-14 of A
+    15                                          ;the bits 3-8 of C are the same as the bits 0-5 of B
+    16                                          ;the bits 9-15 of C are the same as the bits 3-9 of A
+    17                                          ;the bits 16-31 of C are the same as the bits of A
+    18                                          
+    19 00000000 66BB0000                    mov bx, 0                   ; bx = 0
+    20                                      
+    21                                      ;the bits 0-2 of C are the same as the bits 12-14 of A
+    22                                      
+    23 00000004 66A1[00000000]              mov ax, [a]                 ; ax = a
+    24 0000000A 66250070                    and ax, 0111000000000000b   ; izolate bits 12-14 from a
+    25 0000000E B10C                        mov cl, 12
+    26 00000010 66D3C8                      ror ax, cl                  ; move bits 12-14 from a to 0-2 position
+    27 00000013 6609C3                      or  bx, ax                   ; bx = ax
+    28                                      
+    29                                      ;the bits 3-8 of C are the same as the bits 0-5 of B
+    30                                      
+    31 00000016 66A1[02000000]              mov ax, [b]                 ; ax = b
+    32 0000001C 6683E03F                    and ax, 0000000000111111b   ; izolate bits 0-5 from b
+    33 00000020 B103                        mov cl, 3
+    34 00000022 66D3C0                      rol ax, cl                  ; rotate the bits from b into bits 3-8 
+    35 00000025 6609C3                      or  bx, ax                   ; put the bits into result
+    36                                      
+    37                                      ;the bits 9-15 of C are the same as the bits 3-9 of A
+    38                                      
+    39 00000028 66A1[00000000]              mov ax, [a]                 ; ax = a
+    40 0000002E 6625F803                    and ax, 000001111111000b    ; izolate bits 3-9 from a
+    41 00000032 B106                        mov cl, 6
+    42 00000034 66D3C0                      rol ax, cl                  ; move bits 3-9 from a to 9-15 position
+    43 00000037 6609C3                      or  bx, ax                   ;put the bits into result
+    44                                      
+    45                                      ;the bits 16-31 of C are the same as the bits of A
+    46                                      
+    47 0000003A B800000000                  mov eax, 0      ; eax = 0
+    48 0000003F 66A1[00000000]              mov ax, [a]     ; ax = a
+    49 00000045 B110                        mov cl, 16
+    50 00000047 D3C0                        rol eax, cl     ; move a into 16-31 bits from eax
+    51 00000049 6689D8                      mov ax, bx      ; move bx into eax
+    52                                      
+    53 0000004C A3[04000000]                mov [c], eax    ; put result into c
+    54                                  
+    55                                  
+    56                                  
+    57 00000051 6A00                        push dword 0 
+    58 00000053 FF15[00000000]              call [exit] 

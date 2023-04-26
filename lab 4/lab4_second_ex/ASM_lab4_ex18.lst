@@ -1,0 +1,52 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9 00000000 CCCC                        a dw 1100110011001100b
+    10 00000002 00000000                    b dd 0
+    11                                  segment code use32 class=code
+    12                                  start:;Given the word A, compute the doubleword B as follows:
+    13                                        ;the bits 0-3 of B have the value 0;
+    14                                        ;the bits 4-7 of B are the same as the bits 8-11 of A
+    15                                        ;the bits 8-9 and 10-11 of B are the invert of the bits 0-1 of A (so 2 times) ;
+    16                                        ;the bits 12-15 of B have the value 1
+    17                                        ;the bits 16-31 of B are the same as the bits 0-15 of B.
+    18                                  
+    19                                      ;the bits 0-3 of B have the value 0;
+    20                                      
+    21 00000000 66BB0000                    mov bx, 0
+    22 00000004 6683E3F0                    and bx, 1111111111110000b 
+    23                                      
+    24                                      ;the bits 4-7 of B are the same as the bits 8-11 of A
+    25                                      
+    26 00000008 66A1[00000000]              mov ax, [a]
+    27 0000000E 6625000F                    and ax, 0000111100000000b   ;retain bits 8-11 from a
+    28 00000012 B104                        mov cl, 4
+    29 00000014 66D3C8                      ror ax, cl                  ;move bits into positions 4-7
+    30 00000017 6609C3                      or bx, ax                   ;retain value in bx
+    31                                      
+    32                                      ;the bits 8-9 and 10-11 of B are the invert of the bits 0-1 of A (so 2 times) ;
+    33                                      
+    34 0000001A 66A1[00000000]              mov ax, [a]                         ; ax = a
+    35 00000020 66F7D0                      not ax                              ; inverts values from a
+    36 00000023 6683E003                    and ax, 0000_0000_0000_0011b        ; saves bits 0-1 from a
+    37 00000027 66C1E008                    shl ax, 8                           ; shifts bits 0-1 to 8-9
+    38 0000002B 6609C3                      or bx, ax                          ; retains values in b
+    39 0000002E 66C1E002                    shl ax, 2                           ; shifts bits 8-9 to 10-11
+    40 00000032 6609C3                      or bx, ax                          ; saves values in b
+    41                                      
+    42                                      ;the bits 16-31 of B are the same as the bits 0-15 of B.
+    43                                      
+    44 00000035 B800000000                  mov eax, 0
+    45 0000003A 6689D8                      mov ax, bx           ; ax = b
+    46 0000003D B110                        mov cl, 16
+    47 0000003F D3C0                        rol eax, cl            ; moves b from bits 0-15 to 16-31
+    48 00000041 6689D8                      mov ax, bx            ; adds in eax on positions 0-15 b
+    49                                      
+    50                                      
+    51 00000044 6A00                        push dword 0 
+    52 00000046 FF15[00000000]              call [exit] 
