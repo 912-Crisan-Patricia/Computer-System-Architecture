@@ -1,0 +1,33 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9 00000000 010204060A1419              s db 1, 2, 4, 6, 10, 20, 25
+    10                                      l equ $-s
+    11 00000007 00<rept>                    d times l-1 db 0 ; d trebuie D: 1, 2, 2, 4, 10, 5
+    12                                  
+    13                                  
+    14                                  segment code use32 class=code
+    15                                  start: ; A byte string S of length l is given. 
+    16                                      ;Obtain the string D of length l-1 so that the elements of D represent the difference between every two consecutive elements of S
+    17                                  
+    18 00000000 BE01000000              	mov ESI, 1              ; esi=1
+    19                                  	Repeta:
+    20                                      	
+    21 00000005 8A86[00000000]                  mov AL, [s+ESI]     ; al takes the values from 2nd element to the last from s
+    22 0000000B 8A9E[FFFFFFFF]                  mov BL, [s+ESI-1]   ; bl takes the values from first to the last but one from s
+    23 00000011 28D8                            sub AL, BL          ; al=al-bl
+    24 00000013 8886[07000000]                  mov [d+ESI], AL     ; mov al on the corresponding byte o the result
+    25 00000019 46                              inc ESI             ; increment esi by 1
+    26 0000001A 83FE07                          cmp ESI, l          ; compare esi to l in order to know when to finish the loop
+    27 0000001D 72E6                            jb Repeta           ;repeat the instructions until esi=l
+    28                                  
+    29                                  
+    30                                  
+    31                                  
+    32 0000001F 6A00                        push dword 0 
+    33 00000021 FF15[00000000]              call [exit] 
