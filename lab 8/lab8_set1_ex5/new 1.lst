@@ -1,0 +1,44 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  ; declararea functiilor externe folosite de program
+     6                                  extern exit, printf, scanf  ; adaugam printf si scanf ca functii externe           
+     7                                  import exit msvcrt.dll    
+     8                                  import printf msvcrt.dll     ; indicam asamblorului ca functia printf se gaseste in libraria msvcrt.dll
+     9                                  import scanf msvcrt.dll      ; similar pentru scanf      
+    10                                  
+    11                                  segment data use32 class=data
+    12 00000000 17000000                    a dd 23
+    13 00000004 0A000000                    b dd 10
+    14 00000008 00000000                    quo dd 0
+    15 0000000C 00000000                    rem dd 0
+    16 00000010 71756F7469656E7420-         message dd "quotient = %d, remainder = %d",0
+    16 00000019 3D2025642C2072656D-
+    16 00000022 61696E646572203D20-
+    16 0000002B 256400000000000000 
+    17                                  
+    18                                  segment code use32 class=code
+    19                                  start:
+    20                                      ;Two natural numbers a and b (a, b: dword, defined in the data 
+    21                                      ;segment) are given. Calculate a/b and display the quotient and the 
+    22                                      ;remainder in the following format: "Quotient = <quotient>, 
+    23                                      ;remainder = <remainder>". Example: for a = 23, b = 10 it will 
+    24                                      ;display: "Quotient = 2, remainder = 3".
+    25                                      ;The values will be displayed in decimal format (base 10) with sign.
+    26                                      
+    27                                      ;mov edx,0
+    28 00000000 A1[00000000]                mov eax,[a]
+    29 00000005 F735[04000000]              div dword [b]
+    30                                      
+    31 0000000B 668915[0C000000]            mov [rem], dx
+    32 00000012 66A3[08000000]              mov [quo], ax
+    33                                      
+    34 00000018 FF35[0C000000]              push dword [rem]
+    35 0000001E FF35[08000000]              push dword [quo]
+    36 00000024 68[10000000]                push dword message
+    37 00000029 FF15[00000000]              call [printf]
+    38 0000002F 83C40C                      add esp, 4*3
+    39                                      
+    40 00000032 6A00                        push dword 0 
+    41 00000034 FF15[00000000]              call [exit]

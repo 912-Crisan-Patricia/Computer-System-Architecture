@@ -1,0 +1,93 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  ; declare external functions needed by our program
+     6                                  extern exit, fprintf, fopen, fclose, printf, fread               ; tell nasm that exit exists even if we won't be defining it
+     7                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     8                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+     9                                  import fprintf msvcrt.dll 
+    10                                  import fopen msvcrt.dll
+    11                                  import fclose msvcrt.dll
+    12                                  import printf msvcrt.dll 
+    13                                  import fread msvcrt.dll    
+    14                                  
+    15                                  segment data use32 class=data
+    16 00000000 6C6162385F322E7478-         nume_fisier db "lab8_2.txt", 0           ; file name
+    16 00000009 7400               
+    17 0000000B 7200                        mod_acces db "r",0                      
+    18 0000000D 00000000                    descriptor dd 0                         ; the variable in which the descriptor is saved
+    19                                      len equ 100
+    20 00000011 <res 00000064>              buffer resb len
+    21 00000075 00                          result db 0
+    22 00000076 00                          ok db 0                                 ; variable that will change to 1 once finding a character and then 0 to "." " "
+    23 00000077 546865206E756D6265-         format db "The number of words found is %d",0
+    23 00000080 72206F6620776F7264-
+    23 00000089 7320666F756E642069-
+    23 00000092 7320256400         
+    24                                      
+    25                                      
+    26                                  
+    27                                  segment code use32 class=code
+    28                                  start:  ;A text file is given. The text contains letters, spaces and points.
+    29                                          ;Read the content of the file, determine the number of words and display the result on the screen. 
+    30                                          ;(A word is a sequence of characters separated by space or point)
+    31                                      
+    32 00000000 68[0B000000]                    push dword mod_acces
+    33 00000005 68[00000000]                    push dword nume_fisier
+    34 0000000A FF15[00000000]                  call [fopen]
+    35 00000010 83C408                          add esp, 4 * 2                      ; clean the parameters on the stack
+    36                                                                               
+    37 00000013 83F800                          cmp eax, 0                          ;we verify if the function fopen opened the file
+    38 00000016 0F8486000000                    je final                     
+    39 0000001C A3[0D000000]                    mov [descriptor], eax 
+    40                                          
+    41                                              repeta:                             ; we take 100 characters each time from the file and we transfer them in the buffer
+    42 00000021 FF35[0D000000]                      push dword [descriptor]
+    43 00000027 6A64                                push dword len
+    44 00000029 6A01                                push dword 1                    ; for string =1 , byte=1, word =2, dword=4
+    45 0000002B 68[11000000]                        push dword buffer
+    46 00000030 FF15[00000000]                      call[fread]
+    47 00000036 83C410                              add esp, 4 * 4                  
+    48                                              
+    49 00000039 89C1                                mov ecx, eax
+    50 0000003B E333                                jecxz afisare
+    51 0000003D BE[11000000]                        mov esi, buffer
+    52 00000042 FC                                  cld                             ;clear df in order to go from left to right
+    53                                              loop_1:
+    54 00000043 AC                                      lodsb                       ;get from esi >> al so that we can compare byte 
+    55 00000044 3C2E                                    cmp al, "."
+    56 00000046 740D                                    jz case.
+    57 00000048 3C20                                    cmp al, " "                 
+    58 0000004A 7409                                    jz case.                    ;if byte = "." or " " go to case.
+    59                                                  
+    60 0000004C C605[76000000]01                        mov byte [ok],1             ;if byte character then change ok to 1
+    61 00000053 EB19                                    jmp endcase.                ;this case presents 
+    62                                                  
+    63                                                  case.:                    ;when the character is . or " "
+    64 00000055 8A1D[76000000]                              mov bl,[ok]             ;save ok in bl in order to copy value
+    65 0000005B 80FB00                                      cmp bl,0                ;if ok was 1 it means that the character found has a character before it so it wont count as word
+    66 0000005E 740E                                        je endcase.             ;if ok zero >> jumps to endcase
+    67 00000060 C605[76000000]00                            mov byte [ok],0         
+    68 00000067 8005[75000000]01                            add byte [result],1     ;increase word count in resut in the case which ok was 1 
+    69                                                            
+    70                                                  endcase.:
+    71 0000006E E2D3                                loop loop_1
+    72                                         
+    73                                      afisare:
+    74 00000070 8A1D[76000000]                  mov bl,[ok]
+    75 00000076 80FB00                          cmp bl,0
+    76 00000079 740E                            je label_2
+    77 0000007B C605[76000000]00                mov byte [ok],0
+    78 00000082 8005[75000000]01                add byte [result],1                 ;repeat case. in case we dont have " " or "." after the last word 
+    79                                          label_2:
+    80 00000089 B800000000                          mov eax,0
+    81 0000008E A0[75000000]                        mov al, [result]
+    82 00000093 50                                  push dword eax
+    83 00000094 68[77000000]                        push dword format
+    84 00000099 FF15[00000000]                      call [printf]
+    85 0000009F 83C408                              add esp, 4* 2                   ;prints result
+    86                                      
+    87                                      final:
+    88 000000A2 6A00                        push dword 0 
+    89 000000A4 FF15[00000000]              call [exit]     

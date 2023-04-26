@@ -1,0 +1,39 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  ; declararea functiilor externe folosite de program
+     6                                  extern exit, printf, scanf  ; adaugam printf si scanf ca functii externe           
+     7                                  import exit msvcrt.dll    
+     8                                  import printf msvcrt.dll     ; indicam asamblorului ca functia printf se gaseste in libraria msvcrt.dll
+     9                                  import scanf msvcrt.dll      ; similar pentru scanf      
+    10                                  
+    11                                  segment data use32 class=data
+    12 00000000 0A000000                    a dd 10
+    13 00000004 08000000                    b dd 8
+    14 00000008 0000000000000000            result dq 0
+    15 00000010 2564202A202564203D-         message db "%d * %d = %d", 0
+    15 00000019 20256400           
+    16                                  segment code use32 class=code
+    17                                  start:
+    18                                      ;Two natural numbers a and b (a, b: dword, defined in the data segment) are 
+    19                                      ;given. Calculate their product and display the result in the following format: 
+    20                                      ;"<a> * <b> = <result>". Example: "2 * 4 = 8"
+    21                                      ;The values will be displayed in decimal format (base 10) with sign.
+    22                                      
+    23 00000000 A1[00000000]                mov eax, [a]
+    24 00000005 F72D[04000000]              imul dword [b]
+    25                                      
+    26 0000000B A3[08000000]                mov [result], eax
+    27 00000010 8915[0C000000]              mov [result + 4], edx
+    28                                      
+    29 00000016 FF35[08000000]              push dword [result]
+    30 0000001C FF35[04000000]              push dword [b]
+    31 00000022 FF35[00000000]              push dword [a]
+    32 00000028 68[10000000]                push dword message
+    33 0000002D FF15[00000000]              call [printf]
+    34 00000033 83C410                      add esp, 4*4
+    35                                      
+    36                                      
+    37 00000036 6A00                        push dword 0 
+    38 00000038 FF15[00000000]              call [exit]

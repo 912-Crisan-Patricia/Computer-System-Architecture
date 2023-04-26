@@ -1,0 +1,119 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  ; declare external functions needed by our program
+     6                                  extern exit, fprintf, fopen, fclose, printf, fread               ; tell nasm that exit exists even if we won't be defining it
+     7                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     8                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+     9                                  import fprintf msvcrt.dll 
+    10                                  import fopen msvcrt.dll
+    11                                  import fclose msvcrt.dll
+    12                                  import printf msvcrt.dll 
+    13                                  import fread msvcrt.dll                        
+    14                                  
+    15                                  
+    16                                  segment data use32 class=data
+    17 00000000 6C6162382E74787400          nume_fisier db "lab8.txt", 0           ; file name
+    18 00000009 7200                        mod_acces db "r", 0 
+    19 0000000B FFFFFFFF                    descriptor dd -1                   ; the variable in which the descriptor is saved 
+    20 0000000F 00000000                    nr_caract_citite dd 0
+    21                                      len equ 100
+    22 00000013 <res 00000064>              buffer resb len
+    23 00000077 <res 00000100>              ascii resb 256
+    24 00000177 546865207570706572-         format db "The uppercase letter with the highest frequency is %c. The frequency of the letter %c is %d. ", 0
+    24 00000180 63617365206C657474-
+    24 00000189 657220776974682074-
+    24 00000192 686520686967686573-
+    24 0000019B 74206672657175656E-
+    24 000001A4 63792069732025632E-
+    24 000001AD 205468652066726571-
+    24 000001B6 75656E6379206F6620-
+    24 000001BF 746865206C65747465-
+    24 000001C8 722025632069732025-
+    24 000001D1 642E2000           
+    25                                  
+    26                                  
+    27                                  segment code use32 class=code
+    28                                  start:  
+    29                                      ;A text file is given. Read the content of the file, determine the uppercase letter with
+    30                                      ;the highest frequency and display the letter along with its frequency on the screen. 
+    31                                      ;The name of text file is defined in the data segment.
+    32 00000000 68[09000000]                push dword mod_acces
+    33 00000005 68[00000000]                    push dword nume_fisier
+    34 0000000A FF15[00000000]                  call [fopen]
+    35 00000010 83C408                          add esp, 4 * 2                      ; clean the parameters on the stack
+    36                                                                               
+    37 00000013 83F800                          cmp eax, 0                          ;we verify if the function fopen opened the file
+    38 00000016 0F8482000000                    je final
+    39                                                            
+    40 0000001C A3[0B000000]                    mov [descriptor], eax               ;save the descritor in the file                              
+    41                                          repeta:                             ; we take 100 characters each time from the file and we transfer them in the buffer
+    42 00000021 FF35[0B000000]                      push dword [descriptor]
+    43 00000027 6A64                                push dword len
+    44 00000029 6A01                                push dword 1                    ; for string =1 , byte=1, word =2, dword=4
+    45 0000002B 68[13000000]                        push dword buffer
+    46 00000030 FF15[00000000]                      call[fread]
+    47 00000036 83C410                              add esp, 4 * 4
+    48                                              
+    49                                              
+    50 00000039 89C1                                mov ecx, eax                    ; we count the number of characters in order to go through the buffer with the loop
+    51 0000003B E320                                jecxz frecventa
+    52                                              
+    53                                                                              ; we go throudh the buffer
+    54 0000003D BE[13000000]                        mov esi, buffer                 ; we transfer the buffer in esi
+    55 00000042 BF[77000000]                        mov edi, ascii                  ; transfer in ascii code in edi
+    56 00000047 FC                                  cld                             ; go in string from left to right
+    57                                              parcurgere:
+    58 00000048 B800000000                              mov eax, 0
+    59 0000004D AC                                      lodsb                       ; transfer in al the first character from the buffer
+    60 0000004E 3C41                                    cmp al, 'A'
+    61 00000050 7207                                    jb continua
+    62 00000052 3C5A                                    cmp al, 'Z'
+    63 00000054 7703                                    ja continua
+    64 00000056 FF0407                                  inc dword [edi + eax]       ;  count the appearance of upper case letter that is in al
+    65                                                  continua:
+    66 00000059 E2ED                                loop parcurgere
+    67 0000005B EBC4                            jmp repeta                          ; read the next 100 characters
+    68                                          
+    69                                                                              ;  determine the upper case letter with the highest frequescy
+    70                                          frecventa:
+    71 0000005D FF35[0B000000]                  push dword [descriptor]
+    72 00000063 FF15[00000000]                  call [fclose]
+    73 00000069 83C404                          add esp, 4 * 1
+    74                                          
+    75                                                                              ;begin determination of frequency
+    76 0000006C B300                            mov bl, 0                           ; initialize maximum number od apparitions with 0
+    77 0000006E B9FF000000                      mov ecx, 255                        ; initialize ecx with number of characters in ascii table
+    78 00000073 BE[77000000]                    mov esi, ascii                      ; in esi se transfera sirul ascii(in care se cauta frecventele) transfer in esi ascii string (in which we look for frequency)
+    79                                          
+    80                                                                              ; search for the upper case letter with the biggest number of apparitions
+    81                                          aparitii:
+    82 00000078 AC                                  lodsb                           ; trasnfer in al the frequency of the character in ascii
+    83 00000079 38D8                                cmp al, bl                      ; check if the frequency in al is higher than the old maximum number of occurrences 
+    84 0000007B 7209                                jb urmatorul                    ; if the frequency in al is lower, move to the next frequency
+    85 0000007D 88C3                                mov bl, al                      ; the frequency from al is saved in bl, if it is higher
+    86 0000007F 89F0                                mov eax, esi                    ; the value reached in esi is saved in eax
+    87 00000081 29F8                                sub eax, edi                    ; the element is searched for in the ascii code table (+1) (edi points to the beginning of the ascii string)
+    88 00000083 89C2                                mov edx, eax                    ; the value of eax is transferred to edx, i.e. the character with the maximum number of occurrences (+1)
+    89 00000085 4A                                  dec edx                         ; subtract 1 to get the character we are looking for
+    90                                              urmatorul:
+    91 00000086 E2F0                            loop aparitii
+    92                                           
+    93                                          
+    94                                                                              ; the calculated result is displayed
+    95 00000088 88D8                            mov al, bl                          ; is transferred to the maximum frequency saved in bl
+    96 0000008A 6698                            cbw                                 ; convert to word
+    97 0000008C 98                              cwde                                ; convert to dword
+    98 0000008D 50                              push dword eax                      ; frequency
+    99 0000008E 52                              push dword edx                      ; character
+   100 0000008F 52                              push dword edx
+   101 00000090 68[77010000]                    push dword format
+   102 00000095 FF15[00000000]                  call [printf]
+   103 0000009B 83C40C                          add esp, 4 * 3
+   104                                          
+   105                                      final:
+   106                                  
+   107                                  
+   108 0000009E 6A00                        push dword 0 
+   109 000000A0 FF15[00000000]              call [exit]     
