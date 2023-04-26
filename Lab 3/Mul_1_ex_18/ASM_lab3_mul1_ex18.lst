@@ -1,0 +1,70 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9                                       
+    10 00000000 11                          a db 11h
+    11 00000001 22                          b db 22h
+    12 00000002 2211                        c dw 1122h
+    13 00000004 44332211                    e dd 11223344h
+    14 00000008 8877665544332211            x dq 1122334455667788h
+    15                                  
+    16                                  segment code use32 class=code
+    17                                  start:;(a+b*c+2/c)/(2+a)+e+x
+    18                                  
+    19                                      
+    20 00000000 A0[01000000]                mov al,[b]      ;al = b
+    21 00000005 B400                        mov ah, 0       ;al -> ax = b
+    22 00000007 66F725[02000000]            mul word [c]    ;dx:ax = b * c
+    23                                      
+    24 0000000E 6652                        push dx
+    25 00000010 6650                        push ax         ;[ESP]1 = dx:ax = b * c
+    26                                      
+    27 00000012 66BA0000                    mov dx, 0
+    28 00000016 66B80200                    mov ax, 2       ;dx:ax = 2
+    29                                      
+    30 0000001A 66F735[02000000]            div word [c]    ;ax = 2/c
+    31 00000021 6689C1                      mov cx, ax      ;cx = 2/c
+    32                                      
+    33 00000024 8A1D[00000000]              mov bl, [a]
+    34 0000002A B700                        mov bh, 0       ;bl -> bx = a
+    35                                      
+    36 0000002C 6658                        pop ax
+    37 0000002E 665A                        pop dx          ;dx:ax = +
+    38                                      
+    39 00000030 6601C8                      add ax, cx
+    40 00000033 6683D200                    adc dx, 0       ;dx:ax = (b*c+2/c)
+    41                                      
+    42 00000037 6601D8                      add ax, bx
+    43 0000003A 6683D200                    adc dx, 0       ;dx:ax = (a+b*c+2/c)
+    44                                      
+    45 0000003E 8A1D[00000000]              mov bl, [a]     
+    46 00000044 B700                        mov bh, 0       ;bl -> bx = a
+    47 00000046 6683C302                    add bx, 2       ;bx = a + 2
+    48                                      
+    49 0000004A 66F7F3                      div bx          ;ax = (a+b*c+2/c)/(2+a)
+    50                                      
+    51 0000004D 6A00                        push 0
+    52 0000004F 6650                        push ax
+    53 00000051 58                          pop eax         ;ax -> eax = (a+b*c+2/c)/(2+a)
+    54                                      
+    55 00000052 8B0D[04000000]              mov ecx, [e]
+    56                                      
+    57 00000058 01C8                        add eax, ecx    ;eax = (a+b*c+2/c)/(2+a)+e
+    58                                      
+    59 0000005A BA00000000                  mov edx, 0      ;eax -> edx:eax = (a+b*c+2/c)/(2+a)+e
+    60                                      
+    61 0000005F 8B1D[08000000]              mov ebx, [x]
+    62 00000065 8B0D[0C000000]              mov ecx, [x+4]
+    63                                      
+    64 0000006B 01D8                        add eax, ebx
+    65 0000006D 11CA                        adc edx, ecx    ;edx:eax = final result
+    66                                      
+    67                                          
+    68 0000006F 6A00                        push dword 0 
+    69 00000071 FF15[00000000]              call [exit] 
+    70                                  

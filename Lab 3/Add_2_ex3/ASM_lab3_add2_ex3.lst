@@ -1,0 +1,45 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9 00000000 EF                          a db -11h
+    10 00000001 2211                        b dw 1122h
+    11 00000003 44332211                    c dd 11223344h
+    12 00000007 8877665544332211            d dq 1122334455667788h
+    13                                  segment code use32 class=code
+    14                                  start:;(b + b + d) - (c + a)
+    15                                  
+    16                                      
+    17 00000000 66A1[01000000]              mov ax, [b]     ;ax = b
+    18 00000006 98                          cwde            ;ax -> eax = b
+    19 00000007 89C3                        mov ebx,eax     ;ebx = b
+    20                                      
+    21 00000009 01D8                        add eax,ebx     ;eax = b + b
+    22 0000000B 99                          cdq             ;eax -> edx:eax = b + b
+    23                                      
+    24 0000000C 8B1D[07000000]              mov ebx, [d]
+    25 00000012 8B0D[0B000000]              mov ecx, [d+4]  ;ecx:ebx= d
+    26                                      
+    27 00000018 01C3                        add ebx,eax
+    28 0000001A 11D1                        adc ecx,edx     ;ecx:ebx = b + b + d
+    29                                      
+    30 0000001C 8B15[03000000]              mov edx,[c]     ;edx = c
+    31                                      
+    32 00000022 A0[00000000]                mov al,[a]      ;al = a
+    33 00000027 6698                        cbw             ;al -> ax
+    34 00000029 98                          cwde            ;ax -> eax = a
+    35                                      
+    36 0000002A 01D0                        add eax,edx     ;eax = a + c
+    37 0000002C 99                          cdq             ;eax -> edx:eax
+    38                                      
+    39 0000002D 29C3                        sub ebx,eax
+    40 0000002F 19D1                        sbb ecx,edx     ;ecx:ebx = (b + b + d) - (c + a)
+    41                                      
+    42                                  
+    43                                  
+    44 00000031 6A00                        push dword 0 
+    45 00000033 FF15[00000000]              call [exit] 

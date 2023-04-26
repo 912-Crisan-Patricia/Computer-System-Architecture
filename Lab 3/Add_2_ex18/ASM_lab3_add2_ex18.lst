@@ -1,0 +1,50 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9                                  
+    10 00000000 11                          a db 11h
+    11 00000001 2211                        b dw 1122h
+    12 00000003 44332211                    c dd 11223344h
+    13 00000007 8877665544332211            d dq 1122334455667788h
+    14                                      
+    15                                  segment code use32 class=code
+    16                                  start:; (d - b) - a - (b - c)
+    17                                  
+    18 00000000 8B1D[07000000]              mov ebx, [d]
+    19 00000006 8B0D[0B000000]              mov ecx, [d+4]      ;ecx:ebx = d
+    20                                      
+    21 0000000C 66A1[01000000]              mov ax, [b]         ;ax = b
+    22 00000012 98                          cwde                ;ax -> eax
+    23 00000013 99                          cdq                 ;eax -> edx:eax = b
+    24                                      
+    25 00000014 29C3                        sub ebx, eax
+    26 00000016 19D1                        sbb ecx, edx        ;ecx:ebx = d - b
+    27                                      
+    28 00000018 A0[00000000]                mov al, [a]         ;al = a
+    29 0000001D 6698                        cbw                 ;ax = a
+    30 0000001F 98                          cwde                ;ax -> eax = a
+    31 00000020 99                          cdq                 ;edx:eax = a
+    32                                      
+    33 00000021 29C3                        sub ebx, eax
+    34 00000023 19D1                        sbb ecx, edx        ;ecx:ebx = (d - b) - a
+    35                                      
+    36 00000025 66A1[01000000]              mov ax,[b]          ;ax = b
+    37 0000002B 98                          cwde                ;ax -> eax
+    38                                      
+    39 0000002C 8B15[03000000]              mov edx,[c]         ;edx = c
+    40                                      
+    41 00000032 29D0                        sub eax,edx
+    42 00000034 99                          cdq                 ;eax -> edx:eax = b - c
+    43                                      
+    44 00000035 29C3                        sub ebx,eax
+    45 00000037 19D1                        sbb ecx,edx         ;ecx:ebx = (d - b) - a - (b - c)
+    46                                      
+    47                                      
+    48                                  
+    49 00000039 6A00                        push dword 0 
+    50 0000003B FF15[00000000]              call [exit] 
