@@ -1,0 +1,63 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9 00000000 00FF5602                    s dw -256,256h
+    10 00000004 072137132E                  s1 db 7, 33, 55, 19, 46
+    11                                      L1 equ $-s1
+    12 00000009 2115070D1B1337012E          s2 db 33, 21, 7, 13, 27, 19, 55, 1, 46
+    13                                      L2 equ $-s2
+    14 00000012 00<rept>                    d times L2 db 0
+    15                                      
+    16                                  
+    17                                  segment code use32 class=code
+    18                                  start:
+    19                                      ;Two byte strings s1 and s2 are given. Build the byte string d such that, for every byte s2[i] in s2, 
+    20                                      ;d[i] contains either the position of byte s2[i] in s1, either the value of 0.
+    21                                      ;pos:1 2 3 4 5
+    22                                      ;s1: 7, 33, 55, 19, 46
+    23                                      ;s2: 33, 21, 7, 13, 27, 19, 55, 1, 46 
+    24                                      ;d: 2,  0, 1, 0, 0, 4, 3, 0, 5
+    25                                      
+    26                                      
+    27 00000000 B909000000                  mov ECX, L2                     ; we put the length of the first string, so the first loop will be executed for each number from the string
+    28 00000005 BE[09000000]                mov ESI, s2                     ; In the source register we place the address of s2
+    29 0000000A BF[04000000]                mov EDI, s1                     ; In the destination register we place the addres of s1
+    30 0000000F E339                        jecxz end_loop
+    31 00000011 FC                          CLD                             ; We set the direction flag to 0, so we could go through the string from left to right.
+    32                                      first_loop: 
+    33 00000012 51                              push ECX                    ; we save the value of ECX by pushing it to the stack     
+    34 00000013 B905000000                      mov ECX, L1                 ; we put the length of the second string
+    35 00000018 E32D                                jecxz end_of_the_second_loop 
+    36 0000001A AC                                  lodsb                   ;  AL <-- current element from s2, and ESI is increased by one.
+    37                                              second_loop:
+    38 0000001B AE                                      scasb               ; We compare the value from AL with the value from <ES:EDI> by making a fictive subtraction which won't affect their value ; AL - <ES:EDI>
+    39                                                                      ;If the DF = 0, EDI will be increased by one, but we already know DF is 0 because we setted it's value before the start of the first loop
+    40 0000001C 7402                                    je if_equal         ; If the difference is equal to 0, it means the numbers are equal so the ZF = 0 and we jump to if_equal:
+    41 0000001E EB20                                    jmp not_equal       ; If they are not equal we jump to not_equal and we go to the next element from the string s1
+    42                                                  if_equal:
+    43 00000020 89FB                                        mov EBX, EDI    ; We put in EBX the value from EDI so we can modify EDI's value without changing it in the register
+    44 00000022 81EB[04000000]                              sub EBX, s1     ; Like that we obtain the position from the string s1 of the current number from the string s2
+    45 00000028 81EE[09000000]                              sub ESI, s2 
+    46 0000002E 83EE01                                      sub ESI, 1      ; Like that we obtain the corresponding position in the destination string 
+    47 00000031 889E[12000000]                              mov [d+ESI],BL  ; We place the position from the string s1 in the destination string on the corresponding position
+    48 00000037 81C6[09000000]                              add ESI, s2 
+    49 0000003D 83C601                                      add ESI, 1
+    50                                                                      ;Like that we get back ESI to its initial value
+    51                                                  not_equal:
+    52 00000040 E2D9                                loop second_loop
+    53 00000042 BF[04000000]                        mov EDI, s1             ; We have to place again the addres of s1 in EDI, because EDI was changed and we need to start over in all cases
+    54                                              end_of_the_second_loop:
+    55 00000047 59                              pop ECX                     ; We take from the stack the previous value of ECX
+    56                                          
+    57 00000048 E2C8                        loop first_loop
+    58                                      end_loop:
+    59                                  
+    60                                  
+    61                                      
+    62 0000004A 6A00                        push dword 0 
+    63 0000004C FF15[00000000]              call [exit] 

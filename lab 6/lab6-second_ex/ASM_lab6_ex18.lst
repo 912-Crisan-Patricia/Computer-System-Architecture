@@ -1,0 +1,99 @@
+     1                                  bits 32 
+     2                                  global start
+     3                                  
+     4                                  
+     5                                  extern exit 
+     6                                  import exit msvcrt.dll  
+     7                                  
+     8                                  segment data use32 class=data
+     9 00000000 785634124D3C2C1A76-         s DD 12345678h, 1A2C3C4Dh, 98FCDC76h
+     9 00000009 DCFC98             
+    10                                      len EQU ($-s)/4
+    11 0000000C 00<rept>                    d times len db 0                        ; where we store the resulting array
+    12 0000000F 00000000                    lend DD 0                               ; the length of the result
+    13 00000013 00<rept>                    digits times 3 db 0                     ; auxiliary array used to store decimal digits. We have at most 3 digits converting byte to decimal
+    14 00000016 00000000                    lendigits DD 0                          ; length of this auxiliary array
+    15                                  
+    16                                  
+    17                                  segment code use32 class=code
+    18                                  start:
+    19                                      ;A list of doublewords is given. Obtain the list made out of the low bytes of the high words of each 
+    20                                      ;doubleword from the given list with the property that these bytes are palindromes in base 10.
+    21                                      ;s DD 12345678h, 1A2C3C4Dh, 98FCDC76h
+    22                                      ;d DB 2Ch, FCh.
+    23 00000000 B903000000                      mov ECX, len
+    24 00000005 BE[00000000]                    mov ESI, s
+    25 0000000A BF[0C000000]                    mov EDI, d
+    26 0000000F FC                              cld 
+    27                                          main_loop:
+    28 00000010 AD                                  lodsd                           ; EAX <- Next dword from s
+    29 00000011 C1E810                              shr EAX, 16                     ; We move the higher part of EAX into AX, so EAX = 0000:AX
+    30 00000014 B400                                mov AH, 0                       ; to get only the low part. AL is the byte we work with
+    31                                              
+    32 00000016 56                                  push ESI                        ; We push ESI, ECX and EDI to the stack beacuse
+    33 00000017 51                                  push ECX                        ; we use these registers to convert from base 16 to base 10
+    34 00000018 57                                  push EDI                        ; and to check if the number is palindrome
+    35                                              
+    36                                              
+    37                                              ; ------- CONVERTING TO BASE 10 -----------
+    38 00000019 50                                  push EAX                        ; we keep a copy of the byte we check
+    39 0000001A BF[13000000]                        mov EDI, digits
+    40                                              second_loop:
+    41 0000001F B30A                                    mov BL, 10
+    42 00000021 F6F3                                    div BL                      ; AL = AX / 10, AH = AX % 10
+    43                                                  
+    44 00000023 88C2                                    mov DL, AL                  ; DL = AX / 10. We need this for the next loop
+    45 00000025 88E0                                    mov AL, AH                  ; AL = AX mod 10. This is the digit we must be store in memory
+    46                                                  
+    47 00000027 AA                                      stosb                       ; to next value in digits we store current digit, AL
+    48 00000028 88D0                                    mov AL, DL
+    49 0000002A B400                                    mov AH, 0                   ; AX = initial number / 10
+    50                                                  
+    51 0000002C FF05[16000000]                          inc dword [lendigits] 
+    52                                                  
+    53 00000032 3C00                                    cmp AL, 0
+    54 00000034 7402                                    jz stop_second_loop         ;  if AL is 0, we must stop dividing
+    55                                                  
+    56 00000036 EBE7                                    jmp second_loop             ; if AL is not 0, we get the next digit
+    57                                  
+    58                                              stop_second_loop:
+    59                                              
+    60 00000038 58                                  pop EAX                         ; AL = byte we got the digits of
+    61                                                                              ; In digits we have our number in decimal. We must check now if it is palindrome
+    62                                              ;----------palindrome-----------
+    63 00000039 BE[13000000]                        mov ESI, digits
+    64 0000003E BF[13000000]                        mov EDI, digits
+    65 00000043 033D[16000000]                      add EDI, [lendigits]
+    66 00000049 4F                                  dec EDI                         ;  ESI <- beginning of digits, EDI <- end of digits, digits + lendigits - 1
+    67 0000004A 8B0D[16000000]                      mov ECX, [lendigits]            ; number of digits
+    68 00000050 D1E9                                shr ECX, 1                      ; we divide the number of digits in 2, because we do not need to check all digits for palindromity
+    69                                              
+    70 00000052 FC                                  cld
+    71                                              palindrom_loop:
+    72 00000053 A6                                      cmpsb                       ; compare pair of digits that should be the same
+    73 00000054 7509                                    jne not_palindrom           ; if they are not equal, stop checking
+    74 00000056 83EF02                                  sub EDI, 2                  ; EDI became EDI + 1, but we need it to be the previous digit, EDI - 1
+    75                                                  
+    76 00000059 E2F8                                    loop palindrom_loop
+    77                                                  
+    78 0000005B 5F                                  pop EDI                         ; EDI <- d
+    79 0000005C AA                                  stosb                           ; we store our current byte (AL) in result array, d
+    80 0000005D EB01                                jmp was_palindrom
+    81                                              
+    82                                              not_palindrom:
+    83 0000005F 5F                                      pop EDI                     ; EDI <- d
+    84                                              
+    85                                              was_palindrom:
+    86                                              
+    87 00000060 59                                  pop ECX 
+    88 00000061 5E                                  pop ESI                         ; ESI <- position in original string
+    89                                              
+    90 00000062 C705[16000000]0000-                 mov dword [lendigits], 0        ; we reset the count of number of digits
+    90 0000006A 0000               
+    91 0000006C E2A2                                loop main_loop                  ; exit(0)
+    92                                  
+    93                                      
+    94                                  
+    95                                  
+    96 0000006E 6A00                        push dword 0 
+    97 00000070 FF15[00000000]              call [exit]
