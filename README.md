@@ -1,6 +1,6 @@
 # Computer-System-Architecture
 
-First semester course using Assmebly laguage.
+First semester course using Assembly laguage.
 
 
 
